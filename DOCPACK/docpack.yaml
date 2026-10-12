@@ -1,0 +1,8 @@
+system_id: ai-doc-assistant
+prefix: ADA
+brand: "AI DOC ASSISTANT"
+subtitle: "ระบบถาม-ตอบเอกสารด้วย RAG ภาษาไทย/อังกฤษ พร้อมอ้างอิงแหล่งที่มา (pilot ภายใน)"
+footer: "AI Doc Assistant — ฉบับร่างเพื่อพิจารณา"
+color: "#0f766e"
+audience: internal
+tier: L2
