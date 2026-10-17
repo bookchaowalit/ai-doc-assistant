@@ -1,0 +1,27 @@
+# Reviewed OSV exceptions (DevSecOps Phase 1). Each entry needs a reason and an expiry.
+
+# chromadb has no fixed release (all four advisories list 1.5.9, the latest, as last affected).
+# They concern the Chroma *server*: its /api/v2 HTTP endpoints (trust_remote_code model
+# repositories) and its multi-tenant authorization providers. This app embeds Chroma in-process
+# with chromadb.Client() (rag_engine.py), never starts or exposes the Chroma HTTP server, uses
+# one fixed collection with the default embedding function, and has no tenants. Re-check when
+# chromadb ships a fix.
+[[IgnoredVulns]]
+id = "PYSEC-2026-311"
+ignoreUntil = 2027-01-17
+reason = "Chroma server endpoint RCE; app uses in-process chromadb.Client() only, no Chroma HTTP server. No fixed release yet."
+
+[[IgnoredVulns]]
+id = "PYSEC-2026-3813"
+ignoreUntil = 2027-01-17
+reason = "Chroma server cross-tenant authorization; app uses in-process chromadb.Client() only, no tenants or Chroma server. No fixed release yet."
+
+[[IgnoredVulns]]
+id = "PYSEC-2026-3814"
+ignoreUntil = 2027-01-17
+reason = "Chroma server collection-update RCE via trust_remote_code; app uses in-process chromadb.Client() only, no Chroma HTTP server. No fixed release yet."
+
+[[IgnoredVulns]]
+id = "PYSEC-2026-3815"
+ignoreUntil = 2027-01-17
+reason = "Chroma server SimpleRBACAuthorizationProvider; app uses in-process chromadb.Client() only and no authorization provider. No fixed release yet."

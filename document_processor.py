@@ -1,7 +1,7 @@
 """
 Document Processor — Extract text from PDFs and DOCX, chunk into segments
 """
-import PyPDF2
+import pypdf
 from docx import Document
 from typing import List, Dict
 import re
@@ -41,7 +41,7 @@ class DocumentProcessor:
         """Extract text from PDF"""
         text = ""
         with open(file_path, 'rb') as f:
-            reader = PyPDF2.PdfReader(f)
+            reader = pypdf.PdfReader(f)
             for page in reader.pages:
                 text += page.extract_text() + "\n"
         return text

@@ -1,10 +1,17 @@
 numpy<2.0
 fastapi>=0.115
 uvicorn[standard]>=0.30
-python-multipart>=0.0.9
+python-multipart>=0.0.31
 chromadb>=0.5
 openai>=1.50
-pypdf2>=3.0.1
+# pypdf is the maintained successor of PyPDF2 (same PdfReader API); PyPDF2 3.0.1 has an
+# unfixed infinite-loop DoS on crafted PDFs (PYSEC-2026-1835).
+pypdf>=6.21.0
 python-docx>=1.1.0
 pydantic>=2.9
 python-dotenv>=1.0.0
+# Floors for transitive dependencies with known vulnerabilities below these versions.
+httpx2>=2.12.0
+httpcore2>=2.10.0
+orjson>=3.11.5
+requests>=2.33.0
