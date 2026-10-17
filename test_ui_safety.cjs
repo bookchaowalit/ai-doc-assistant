@@ -45,6 +45,8 @@ const { chromium } = require('playwright');
     page.on('pageerror', error => errors.push(error.message));
     await page.route('**/*', route => new URL(route.request().url()).origin === origin
       ? route.continue() : route.abort());
+    // The origin is the loopback test server started above, not user input.
+    // nosemgrep: javascript.playwright.security.audit.playwright-goto-injection.playwright-goto-injection
     await page.goto(origin);
     const navigation = await page.evaluate(() => {
       const entry = performance.getEntriesByType('navigation')[0];
