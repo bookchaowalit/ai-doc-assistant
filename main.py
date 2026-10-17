@@ -2,6 +2,7 @@
 RAG-as-a-Service Demo — FastAPI Backend
 Turn company documents into an AI assistant that answers questions 24/7
 """
+
 from fastapi import FastAPI, UploadFile, File, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -30,7 +31,7 @@ cors_origins = [
 app = FastAPI(
     title="RAG-as-a-Service",
     description="Turn company documents into an AI assistant",
-    version="1.0.0"
+    version="1.0.0",
 )
 
 app.add_middleware(
@@ -96,8 +97,15 @@ async def upload_document(file: UploadFile = File(...)):
     """Upload and process a document"""
     filename = file.filename or ""
     extension = Path(filename).suffix.lower()
-    if not filename or Path(filename).name != filename or "/" in filename or "\\" in filename:
-        raise HTTPException(status_code=400, detail="Filename must be a single safe name")
+    if (
+        not filename
+        or Path(filename).name != filename
+        or "/" in filename
+        or "\\" in filename
+    ):
+        raise HTTPException(
+            status_code=400, detail="Filename must be a single safe name"
+        )
     if extension not in ALLOWED_EXTENSIONS:
         raise HTTPException(status_code=415, detail="Unsupported document type")
 
@@ -105,7 +113,9 @@ async def upload_document(file: UploadFile = File(...)):
     try:
         content = await file.read(MAX_UPLOAD_BYTES + 1)
         if len(content) > MAX_UPLOAD_BYTES:
-            raise HTTPException(status_code=413, detail="Document exceeds the upload size limit")
+            raise HTTPException(
+                status_code=413, detail="Document exceeds the upload size limit"
+            )
 
         with tempfile.NamedTemporaryFile(
             mode="wb", prefix="ai-doc-", suffix=extension, delete=False
@@ -131,13 +141,15 @@ async def upload_document(file: UploadFile = File(...)):
             "status": "success",
             "filename": filename,
             "chunks_created": len(result["chunks"]),
-            "message": f"Document processed into {len(result['chunks'])} chunks"
+            "message": f"Document processed into {len(result['chunks'])} chunks",
         }
     except HTTPException:
         raise
     except (UnicodeDecodeError, ValueError) as exc:
         logger.warning("Rejected document %s: %s", filename, exc)
-        raise HTTPException(status_code=422, detail="Document could not be processed") from exc
+        raise HTTPException(
+            status_code=422, detail="Document could not be processed"
+        ) from exc
     except Exception as e:
         logger.exception("Document processing failed for %s", filename)
         raise HTTPException(status_code=500, detail="Document processing failed") from e
@@ -162,10 +174,14 @@ async def query_knowledge_base(request: QueryRequest):
                 detail="AI provider is not configured for querying",
             ) from exc
         logger.exception("Query runtime failure")
-        raise HTTPException(status_code=500, detail="Query could not be completed") from exc
+        raise HTTPException(
+            status_code=500, detail="Query could not be completed"
+        ) from exc
     except Exception as exc:
         logger.exception("Query failed")
-        raise HTTPException(status_code=500, detail="Query could not be completed") from exc
+        raise HTTPException(
+            status_code=500, detail="Query could not be completed"
+        ) from exc
 
 
 @app.get("/stats")
@@ -177,4 +193,5 @@ async def get_stats():
 
 if __name__ == "__main__":
     import uvicorn
+
     uvicorn.run(app, host="0.0.0.0", port=8000)
