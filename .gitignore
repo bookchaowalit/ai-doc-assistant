@@ -4,3 +4,5 @@ __pycache__/
 .env
 chroma-data/
 uploads/
+.ruff_cache/
+.pytest_cache/
