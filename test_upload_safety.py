@@ -1,13 +1,12 @@
 """Regression tests for bounded upload handling without a provider key."""
 
-from pathlib import Path
 import unittest
+from pathlib import Path
 from unittest.mock import patch
 
 from fastapi.testclient import TestClient
 
 import main
-
 
 client = TestClient(main.app)
 

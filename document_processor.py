@@ -2,10 +2,10 @@
 Document Processor — Extract text from PDFs and DOCX, chunk into segments
 """
 
+import re
+
 import pypdf
 from docx import Document
-from typing import List, Dict
-import re
 
 
 class DocumentProcessor:
@@ -15,7 +15,7 @@ class DocumentProcessor:
         self.chunk_size = chunk_size
         self.chunk_overlap = chunk_overlap
 
-    def process(self, file_path: str, filename: str) -> Dict:
+    def process(self, file_path: str, filename: str) -> dict:
         """Process a document file and return chunks"""
         # Extract text based on file type
         if filename.lower().endswith(".pdf"):
@@ -55,7 +55,7 @@ class DocumentProcessor:
             text += paragraph.text + "\n"
         return text
 
-    def _chunk_text(self, text: str, filename: str) -> List[Dict]:
+    def _chunk_text(self, text: str, filename: str) -> list[dict]:
         """Split text into overlapping chunks"""
         # Clean text
         text = re.sub(r"\s+", " ", text).strip()

@@ -4,7 +4,7 @@ RAG Engine — Vector storage, retrieval, and LLM-powered question answering
 
 import os
 import time
-from typing import List, Dict
+
 import chromadb
 from openai import OpenAI
 
@@ -59,7 +59,7 @@ class RAGEngine:
             self._client = OpenAI(api_key=self._api_key)
         return self._client
 
-    def ingest_chunks(self, chunks: List[Dict]):
+    def ingest_chunks(self, chunks: list[dict]):
         """Generate embeddings and store chunks in vector database"""
         if not chunks:
             return
@@ -82,7 +82,7 @@ class RAGEngine:
         self.total_chunks += len(chunks)
         self.total_documents += 1
 
-    def query(self, question: str, top_k: int = 3) -> Dict:
+    def query(self, question: str, top_k: int = 3) -> dict:
         """Query the knowledge base and generate answer"""
         start = time.perf_counter()
         cost_usd = 0.0
@@ -196,7 +196,7 @@ Answer in Thai or English based on the user question and always cite the relevan
 
         return response.choices[0].message.content, cost
 
-    def get_stats(self) -> Dict:
+    def get_stats(self) -> dict:
         """Get knowledge base statistics"""
         return {
             "total_documents": self.total_documents,

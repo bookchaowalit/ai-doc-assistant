@@ -3,16 +3,17 @@ RAG-as-a-Service Demo — FastAPI Backend
 Turn company documents into an AI assistant that answers questions 24/7
 """
 
-from fastapi import FastAPI, UploadFile, File, HTTPException
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse
-from pydantic import BaseModel, Field
-import os
-from pathlib import Path
-import tempfile
 import logging
+import os
+import tempfile
+from pathlib import Path
+
 from dotenv import load_dotenv
+from fastapi import FastAPI, File, HTTPException, UploadFile
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
+from pydantic import BaseModel, Field
 
 from document_processor import DocumentProcessor
 from rag_engine import RAGEngine
@@ -93,7 +94,7 @@ async def readyz():
 
 
 @app.post("/upload")
-async def upload_document(file: UploadFile = File(...)):
+async def upload_document(file: UploadFile = File(...)):  # noqa: B008 - FastAPI dependency marker, evaluated by FastAPI per request
     """Upload and process a document"""
     filename = file.filename or ""
     extension = Path(filename).suffix.lower()

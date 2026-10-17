@@ -1,7 +1,7 @@
 """Provider-free regression checks for the retrieved-context prompt boundary."""
 
-from types import SimpleNamespace
 import unittest
+from types import SimpleNamespace
 
 from rag_engine import (
     RETRIEVED_CONTEXT_END,
