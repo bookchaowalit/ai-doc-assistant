@@ -24,11 +24,11 @@ dependencies = [
     "httpcore2>=2.10.0",
     "orjson>=3.11.5",
     "requests>=2.33.0",
+    # Error reporting (observability.py); inert unless SENTRY_DSN is set.
+    "sentry-sdk>=2.72,<3",
 ]
 
 [project.optional-dependencies]
-# Opt-in error reporting (observability.py); off unless SENTRY_DSN is set.
-sentry = ["sentry-sdk>=2.72,<3"]
 dev = [
     "pytest>=9.0.3",
     "pytest-cov>=7",
