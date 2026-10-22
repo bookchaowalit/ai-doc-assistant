@@ -77,7 +77,14 @@ Open http://localhost:8000
 
 | Variable | Required | Description |
 |----------|----------|-------------|
-| `OPENAI_API_KEY` | ✅ Yes | OpenAI API key (starts with `sk-`) |
+| `OPENAI_API_KEY` | Live mode only | OpenAI API key. Without it the app still runs in demo mode. |
+| `DOC_ASSISTANT_ACCESS_TOKEN` | Live mode only | Shared secret (>= 24 chars) callers send as `Authorization: Bearer ...`. Without it nobody can spend the OpenAI key. |
+| `DOC_ASSISTANT_DAILY_REQUEST_CAP` | No (200) | Live uploads + queries per UTC day; invalid value stops live requests. |
+| `DOC_ASSISTANT_RATE_LIMIT_PER_MINUTE` | No (10) | Live requests per client IP per minute. |
+| `DOC_ASSISTANT_DEMO_RATE_LIMIT_PER_MINUTE` | No (30) | Demo requests per client IP per minute. |
+| `SENTRY_DSN` | No | Error reporting (Sentry org `personal-yu0`); off when unset. |
+
+See README "Access and spend control".
 
 ---
 

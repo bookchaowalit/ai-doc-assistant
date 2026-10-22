@@ -1,52 +1,68 @@
 # RAG-as-a-Service Demo
 
-Turn company documents into an AI assistant that answers questions 24/7 — in Thai, with citations.
+A demo FastAPI app: upload PDF/DOCX/TXT documents, then ask questions (Thai or English) and get
+answers that cite the source chunks. Lab project: not deployed, no live URL. See `PRODUCT.md`
+for what works today and its limits.
 
 ## Features
 
-- **Document Upload**: Upload PDF, DOCX, TXT files
-- **Smart Chunking**: Automatic text segmentation with overlap
-- **Vector Search**: ChromaDB for fast similarity search
-- **AI Answers**: GPT-4o powered responses with source citations
-- **Thai Language**: Full Thai NLP support
+- **Document upload**: PDF, DOCX, TXT up to 10 MiB, chunked with overlap
+- **Vector search**: ChromaDB, in process memory (lost on restart)
+- **Two modes** (see "Access and spend control"):
+  - **live**: OpenAI `text-embedding-3-small` + `gpt-4o` answers with citations, token holders only
+  - **demo**: local hashed-keyword retrieval, quotes the best-matching passage, no AI provider call
+- **No-evidence answer**: when nothing relevant is retrieved it says "not found" instead of guessing
 
 ## Quick Start
 
-1. Install dependencies:
+1. Install dependencies (Python 3.11):
 ```bash
-pip install -r requirements.txt
+uv sync --frozen --all-extras      # or: pip install -r requirements.txt
 ```
 
-2. Set up environment:
+2. Run the server (demo mode works with no keys at all):
 ```bash
-cp .env.example .env
-# Add your OpenAI API key to .env
+uv run uvicorn main:app --port 8000
 ```
 
-3. Run the server:
-```bash
-python main.py
-```
+3. For live mode, set the variables below in the shell or a local `.env` (never commit it).
 
-4. Access the API:
-- Swagger UI: http://localhost:8000/docs
-- Upload documents: POST /upload
-- Ask questions: POST /query
+## Access and spend control
+
+The provider key is never spent for anonymous callers.
+
+| Variable | Default | Meaning |
+|---|---|---|
+| `OPENAI_API_KEY` | unset | Needed for live mode only. Live requests without it return 503. |
+| `DOC_ASSISTANT_ACCESS_TOKEN` | unset | Shared secret, at least 24 characters. Callers sending `Authorization: Bearer <token>` get live mode; everyone else gets demo mode. Unset or short = nobody gets live mode. |
+| `DOC_ASSISTANT_RATE_LIMIT_PER_MINUTE` | 10 | Live requests per client IP per minute (429 + `Retry-After` above it). |
+| `DOC_ASSISTANT_DEMO_RATE_LIMIT_PER_MINUTE` | 30 | Demo requests per client IP per minute. |
+| `DOC_ASSISTANT_DAILY_REQUEST_CAP` | 200 | Live uploads + queries per UTC day for the whole instance. An invalid value stops live requests (503). |
+| `SENTRY_DSN` | unset | Error reporting; off when unset. |
+| `CORS_ALLOW_ORIGINS` | `http://localhost:8000` | Comma-separated allowed origins. |
+
+Counters live in process memory: they reset on restart and are per instance. Demo uploads go to a
+separate in-memory index (max 2000 chunks) and are never seen by live callers. The web UI at `/`
+does not send a token, so it always runs in demo mode.
 
 ## API Endpoints
 
 ### Upload Document
 ```bash
 curl -X POST http://localhost:8000/upload \
+  -H "Authorization: Bearer $DOC_ASSISTANT_ACCESS_TOKEN" \
   -F "file=@document.pdf"
 ```
 
 ### Query Knowledge Base
 ```bash
 curl -X POST http://localhost:8000/query \
+  -H "Authorization: Bearer $DOC_ASSISTANT_ACCESS_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{"question": "What is the refund policy?", "top_k": 3}'
 ```
+
+Leave out the `Authorization` header to use demo mode.
 
 ### Get Stats
 ```bash
@@ -56,11 +72,9 @@ curl http://localhost:8000/stats
 ## Architecture
 
 ```
-Client → FastAPI Backend → Document Processor → ChromaDB
-                              ↓
-                         OpenAI Embeddings
-                              ↓
-                         OpenAI GPT-4o
+Client → FastAPI (access gate → rate limit / daily cap) → Document Processor → ChromaDB (in memory)
+  live (token):  OpenAI embeddings → OpenAI gpt-4o answer with citations
+  demo (no token): local hashed embeddings → best-matching passage quoted, no provider call
 ```
 
 ## Tech Stack
@@ -69,57 +83,24 @@ Client → FastAPI Backend → Document Processor → ChromaDB
 - **Vector DB**: ChromaDB
 - **LLM**: OpenAI GPT-4o
 - **Embeddings**: OpenAI text-embedding-3-small
-- **Document Parsing**: PyPDF2, python-docx
+- **Document Parsing**: pypdf, python-docx
 
-## Pricing Model
+## Local checks
 
-- **Setup Fee**: ฿30K-200K (one-time)
-- **Monthly Retainer**: ฿5K-25K/month
-- **ROI**: 1/10th the cost of hiring staff
-
-## Target Customers
-
-- Law firms (10-50 employees)
-- Accounting firms
-- Insurance companies
-- Any document-heavy business
-
-## Next Steps
-
-- [x] Add web UI (Next.js chat interface) ✅ Inline HTML chat UI
-- [x] Sample documents for demo ✅ Thai legal + HR docs
-- [ ] Multi-tenant support
-- [ ] Access control
-- [ ] Analytics dashboard
-- [ ] Deploy to Railway/Render
-
-## Local regression checks
-
-Run the bounded upload safety checks without a provider key:
+The same checks CI runs (offline; the provider is always mocked or unset):
 
 ```bash
-.venv/bin/python -m unittest -v test_api_contract.py test_upload_safety.py test_prompt_injection_boundary.py
+uv sync --frozen --all-extras
+uv run ruff check . && uv run ruff format --check .
+uv run mypy .
+uv run pytest -q --cov
 ```
 
-These checks cover unsupported types, traversal names, the 10 MiB size limit,
-temporary-file cleanup, and the prompt/data boundary for retrieved documents.
-They do not approve authentication, tenant isolation, provider-backed quality,
-or deployment.
+The tests cover the access gate and demo mode (`test_access_gate.py`), rate limit and daily cap
+(`test_spend_limits.py`), the demo engine (`test_demo_engine.py`), upload bounds
+(`test_upload_safety.py`), API contracts (`test_api_contract.py`), the prompt/data boundary for
+retrieved documents (`test_prompt_injection_boundary.py`) and the Sentry scrubber
+(`test_observability.py`). They do not measure answer quality (no eval set yet).
 
-The API contract test disables dotenv loading and provider configuration before
-importing the application. It covers query bounds, health/UI availability,
-empty-collection behavior, missing-provider failure, and synthetic response
-contracts. Run it first as shown above to keep the full suite provider-free.
-
-The chat renders untrusted questions, answers, citation metadata, and errors as
-text. Browser regressions also check duplicate submission and missing metrics.
-With Playwright and Chromium already installed, run `node test_ui_safety.cjs`.
-In the Solo Empire workspace, the existing dependency can be used from its root:
-
-```bash
-NODE_PATH="$PWD/infra/node_modules" node engagements/internal/solo-empire/ai-doc-assistant/test_ui_safety.cjs
-```
-
-This browser test serves the real HTML against synthetic loopback API responses,
-blocks other origins, and shuts down after verification. It does not call a
-model or establish production readiness.
+The browser regression `test_ui_safety.cjs` serves the real HTML against synthetic responses and
+needs Playwright with Chromium: `node test_ui_safety.cjs`. It is not run in CI.
