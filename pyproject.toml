@@ -24,6 +24,7 @@ dependencies = [
     "httpcore2>=2.10.0",
     "orjson>=3.11.5",
     "requests>=2.33.0",
+    "certifi>=2026.10.19",
     # Error reporting (observability.py); inert unless SENTRY_DSN is set.
     "sentry-sdk>=2.72,<3",
 ]
