@@ -23,7 +23,7 @@ class DocumentProcessor:
         elif filename.lower().endswith(".docx"):
             text = self._extract_docx(file_path)
         elif filename.lower().endswith(".txt"):
-            with open(file_path, "r", encoding="utf-8") as f:
+            with open(file_path, encoding="utf-8") as f:
                 text = f.read()
         else:
             raise ValueError(f"Unsupported file type: {filename}")
