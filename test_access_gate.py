@@ -75,7 +75,10 @@ class AccessGateTests(unittest.TestCase):
 
     def test_unset_or_short_server_token_fails_closed(self) -> None:
         for configured in ("", "short-token"):
-            with self.subTest(configured=configured), patch.dict(os.environ, {"DOC_ASSISTANT_ACCESS_TOKEN": configured}):
+            with (
+                self.subTest(configured=configured),
+                patch.dict(os.environ, {"DOC_ASSISTANT_ACCESS_TOKEN": configured}),
+            ):
                 response = self._query({"Authorization": f"Bearer {configured}"})
                 self.assertEqual(response.json()["mode"], "demo")
         self.live_query.assert_not_called()
@@ -83,7 +86,7 @@ class AccessGateTests(unittest.TestCase):
     def test_anonymous_upload_is_indexed_locally_and_answerable_in_demo(self) -> None:
         upload = self.client.post(
             "/upload",
-            files={"file": ("policy.txt", "Refunds are paid within 14 days of a written request.".encode(), "text/plain")},
+            files={"file": ("policy.txt", b"Refunds are paid within 14 days of a written request.", "text/plain")},
         )
         self.assertEqual(upload.status_code, 200)
         self.assertEqual(upload.json()["mode"], "demo")

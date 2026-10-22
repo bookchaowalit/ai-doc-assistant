@@ -78,7 +78,9 @@ class SpendLimitTests(unittest.TestCase):
 
     def test_live_upload_counts_against_the_daily_cap(self) -> None:
         with (
-            patch.dict(os.environ, {"DOC_ASSISTANT_RATE_LIMIT_PER_MINUTE": "100", "DOC_ASSISTANT_DAILY_REQUEST_CAP": "1"}),
+            patch.dict(
+                os.environ, {"DOC_ASSISTANT_RATE_LIMIT_PER_MINUTE": "100", "DOC_ASSISTANT_DAILY_REQUEST_CAP": "1"}
+            ),
             patch.object(main.rag_engine, "ingest_chunks") as ingest,
         ):
             first = self.client.post("/upload", files={"file": ("a.txt", b"text", "text/plain")}, headers=AUTH)

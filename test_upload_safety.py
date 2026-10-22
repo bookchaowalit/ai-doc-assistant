@@ -37,9 +37,7 @@ class UploadSafetyTests(unittest.TestCase):
             )
 
         self.assertEqual(response.status_code, 400)
-        self.assertEqual(
-            response.json()["detail"], "Filename must be a single safe name"
-        )
+        self.assertEqual(response.json()["detail"], "Filename must be a single safe name")
         process.assert_not_called()
 
     def test_rejects_oversized_upload_before_processing(self) -> None:
@@ -51,9 +49,7 @@ class UploadSafetyTests(unittest.TestCase):
             )
 
         self.assertEqual(response.status_code, 413)
-        self.assertEqual(
-            response.json()["detail"], "Document exceeds the upload size limit"
-        )
+        self.assertEqual(response.json()["detail"], "Document exceeds the upload size limit")
         process.assert_not_called()
 
     def test_valid_upload_uses_random_temp_file_and_cleans_it(self) -> None:
@@ -67,7 +63,7 @@ class UploadSafetyTests(unittest.TestCase):
 
         with (
             patch.object(main.doc_processor, "process", side_effect=fake_process),
-            patch.object(main.rag_engine, "ingest_chunks") as ingest,
+            patch.object(main.demo_engine, "ingest_chunks") as ingest,
         ):
             response = client.post(
                 "/upload",

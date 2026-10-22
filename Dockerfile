@@ -7,7 +7,7 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy application (exclude local .venv via .dockerignore when present)
-COPY main.py document_processor.py rag_engine.py requirements.txt ./
+COPY main.py access.py limits.py demo_engine.py observability.py document_processor.py rag_engine.py requirements.txt ./
 COPY static ./static
 COPY sample-documents ./sample-documents
 

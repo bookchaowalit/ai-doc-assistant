@@ -19,8 +19,18 @@ with (
     import main
 
 
+TOKEN = "c" * 32
+AUTH = {"Authorization": f"Bearer {TOKEN}"}
+
+
 class APIContractTests(unittest.TestCase):
+    """Live-mode contract (token holder); the provider itself is always mocked or unset."""
+
     def setUp(self):
+        env = patch.dict(os.environ, {"DOC_ASSISTANT_ACCESS_TOKEN": TOKEN})
+        env.start()
+        self.addCleanup(env.stop)
+        main.reset_runtime_state()
         self.client = TestClient(main.app)
 
     def test_health_and_ui_do_not_require_provider(self):
@@ -38,9 +48,7 @@ class APIContractTests(unittest.TestCase):
                 {"question": "synthetic", "top_k": 0},
                 {"question": "synthetic", "top_k": 11},
             ):
-                self.assertEqual(
-                    self.client.post("/query", json=payload).status_code, 422
-                )
+                self.assertEqual(self.client.post("/query", json=payload).status_code, 422)
             query.assert_not_called()
 
     def test_provider_unconfigured_fails_closed(self):
@@ -49,13 +57,9 @@ class APIContractTests(unittest.TestCase):
             patch.object(main.rag_engine, "_client", None),
             patch.object(main.rag_engine, "total_chunks", 1),
         ):
-            response = self.client.post(
-                "/query", json={"question": "synthetic question"}
-            )
+            response = self.client.post("/query", json={"question": "synthetic question"}, headers=AUTH)
         self.assertEqual(response.status_code, 503)
-        self.assertEqual(
-            response.json()["detail"], "AI provider is not configured for querying"
-        )
+        self.assertEqual(response.json()["detail"], "AI provider is not configured for querying")
 
     def test_empty_collection_returns_no_evidence_without_provider(self):
         with (
@@ -63,9 +67,7 @@ class APIContractTests(unittest.TestCase):
             patch.object(main.rag_engine, "_api_key", ""),
             patch.object(main.rag_engine, "_client", None),
         ):
-            response = self.client.post(
-                "/query", json={"question": "synthetic question"}
-            )
+            response = self.client.post("/query", json={"question": "synthetic question"}, headers=AUTH)
         self.assertEqual(response.status_code, 200)
         self.assertFalse(response.json()["grounded"])
         self.assertEqual(response.json()["cost_usd"], 0)
@@ -80,11 +82,9 @@ class APIContractTests(unittest.TestCase):
             "grounded": True,
         }
         with patch.object(main.rag_engine, "query", return_value=result):
-            response = self.client.post(
-                "/query", json={"question": "synthetic question"}
-            )
+            response = self.client.post("/query", json={"question": "synthetic question"}, headers=AUTH)
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json(), result)
+        self.assertEqual(response.json(), {**result, "mode": "live"})
 
     def test_no_evidence_response_is_explicit(self):
         result = {
@@ -96,9 +96,7 @@ class APIContractTests(unittest.TestCase):
             "grounded": False,
         }
         with patch.object(main.rag_engine, "query", return_value=result):
-            response = self.client.post(
-                "/query", json={"question": "synthetic question"}
-            )
+            response = self.client.post("/query", json={"question": "synthetic question"}, headers=AUTH)
         self.assertEqual(response.status_code, 200)
         self.assertFalse(response.json()["grounded"])
         self.assertEqual(response.json()["sources"], [])
