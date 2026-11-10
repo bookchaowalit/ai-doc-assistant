@@ -42,11 +42,11 @@ class ScrubEventTests(unittest.TestCase):
             "event_id": "e2",
             "level": "error",
             "logger": "httpx",
-            "logentry": {"message": "GET https://api.test/v1?api_key=sk-live-SECRET123 failed", "params": []},
+            "logentry": {"message": "GET https://api.test/v1?token=leaky-token failed", "params": []},
         }
         clean = scrub_event(event)
         self.assertNotIn("logentry", clean)
-        self.assertNotIn("sk-live-SECRET123", repr(clean))
+        self.assertNotIn("leaky-token", repr(clean))
 
     def test_drops_message_not_from_our_reporters(self) -> None:
         # The app never calls capture_message, so any message is free log text.
