@@ -16,6 +16,13 @@ RUN mkdir -p /app/chroma-data /app/uploads /tmp \
     && useradd --create-home --uid 65532 --shell /usr/sbin/nologin appuser \
     && chown -R appuser:appuser /app /tmp
 
+# Image hardening: take Debian security fixes newer than the base tag, then drop the base
+# image's pip (the app runs from its installed environment; pip's vendored urllib3/msgpack/
+# setuptools copies are what the Trivy image scan flags).
+RUN apt-get update \
+    && apt-get upgrade -y --no-install-recommends \
+    && rm -rf /var/lib/apt/lists/* \
+    && /usr/local/bin/python3 -m pip uninstall -y --disable-pip-version-check setuptools wheel pip
 USER 65532:65532
 
 EXPOSE 8000
