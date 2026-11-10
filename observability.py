@@ -4,6 +4,9 @@ Off unless ``SENTRY_DSN`` is set and the ``sentry`` extra (sentry-sdk) is instal
 events only (no tracing), no default PII, and ``scrub_event`` keeps an allowlist of event
 fields: request bodies, headers (Authorization, cookies), query strings, local variables and
 user data are dropped, so uploaded documents, questions and tokens never leave the process.
+Log records never become events or breadcrumbs (``LoggingIntegration`` is switched off), and
+log text (``logentry``, ``message``) and exception messages are dropped: the app never calls
+``capture_message``, so any message is free log text that can hold URLs, questions or tokens.
 """
 
 from __future__ import annotations
@@ -24,8 +27,6 @@ ALLOWED_EVENT_KEYS = frozenset(
         "release",
         "server_name",
         "exception",
-        "message",
-        "logentry",
         "tags",
         "sdk",
         "transaction",
@@ -48,6 +49,9 @@ def scrub_event(event: dict[str, Any], hint: object = None) -> dict[str, Any]:
     exception = clean.get("exception")
     if isinstance(exception, dict):
         for value in exception.get("values") or []:
+            # The exception message can embed document text, URLs or tokens; type and stack suffice.
+            if "value" in value:
+                value["value"] = ""
             frames = (value.get("stacktrace") or {}).get("frames") or []
             for frame in frames:
                 frame.pop("vars", None)
@@ -61,6 +65,7 @@ def init_sentry() -> bool:
         return False
     try:
         sdk = import_module("sentry_sdk")
+        logging_integration = import_module("sentry_sdk.integrations.logging").LoggingIntegration
     except ImportError:
         return False
     sdk.init(
@@ -70,5 +75,7 @@ def init_sentry() -> bool:
         include_local_variables=False,
         traces_sample_rate=0.0,
         before_send=scrub_event,
+        # No log-to-event and no log breadcrumbs: log lines (ours or httpx/urllib3) hold free text.
+        integrations=[logging_integration(level=None, event_level=None, sentry_logs_level=None)],
     )
     return True

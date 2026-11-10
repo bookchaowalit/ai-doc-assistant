@@ -37,6 +37,29 @@ class ScrubEventTests(unittest.TestCase):
         self.assertNotIn("t0ken", repr(clean))
         self.assertNotIn("private", repr(clean))
 
+    def test_drops_logentry_log_text(self) -> None:
+        event = {
+            "event_id": "e2",
+            "level": "error",
+            "logger": "httpx",
+            "logentry": {"message": "GET https://api.test/v1?api_key=sk-live-SECRET123 failed", "params": []},
+        }
+        clean = scrub_event(event)
+        self.assertNotIn("logentry", clean)
+        self.assertNotIn("sk-live-SECRET123", repr(clean))
+
+    def test_drops_message_not_from_our_reporters(self) -> None:
+        # The app never calls capture_message, so any message is free log text.
+        clean = scrub_event({"event_id": "e3", "message": "user asked about salary of jane@example.test"})
+        self.assertNotIn("message", clean)
+        self.assertNotIn("jane@example.test", repr(clean))
+
+    def test_blanks_exception_value(self) -> None:
+        event = {"exception": {"values": [{"type": "KeyError", "value": "'token=abc123'"}]}}
+        value = scrub_event(event)["exception"]["values"][0]
+        self.assertEqual(value["type"], "KeyError")
+        self.assertEqual(value["value"], "")
+
 
 class InitSentryTests(unittest.TestCase):
     def test_off_without_dsn(self) -> None:
@@ -55,6 +78,25 @@ class InitSentryTests(unittest.TestCase):
         self.assertIs(kwargs["before_send"], scrub_event)
         self.assertFalse(kwargs["send_default_pii"])
         self.assertEqual(kwargs["traces_sample_rate"], 0.0)
+
+    def test_init_disables_log_to_event_and_breadcrumbs(self) -> None:
+        sdk = MagicMock()
+
+        class FakeLoggingIntegration:
+            def __init__(self, **kwargs: object) -> None:
+                self.kwargs = kwargs
+
+        logging_mod = MagicMock(LoggingIntegration=FakeLoggingIntegration)
+        modules = {"sentry_sdk": sdk, "sentry_sdk.integrations.logging": logging_mod}
+        with (
+            patch.dict(os.environ, {"SENTRY_DSN": "https://key@example.invalid/1"}),
+            patch.object(observability, "import_module", side_effect=modules.__getitem__),
+        ):
+            self.assertTrue(init_sentry())
+        integrations = sdk.init.call_args.kwargs["integrations"]
+        self.assertEqual(len(integrations), 1)
+        self.assertIsInstance(integrations[0], FakeLoggingIntegration)
+        self.assertEqual(integrations[0].kwargs, {"level": None, "event_level": None, "sentry_logs_level": None})
 
     def test_off_when_sdk_missing(self) -> None:
         with (
